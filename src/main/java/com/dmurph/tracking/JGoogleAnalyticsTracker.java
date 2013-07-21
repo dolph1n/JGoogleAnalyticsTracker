@@ -25,18 +25,13 @@
  */
 package com.dmurph.tracking;
 
-import java.net.HttpURLConnection;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
+import org.apache.log4j.Logger;
+
+import java.net.*;
 import java.net.Proxy.Type;
-import java.net.SocketAddress;
-import java.net.URL;
 import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.regex.MatchResult;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
@@ -91,7 +86,7 @@ public class JGoogleAnalyticsTracker {
 		SINGLE_THREAD
 	}
 	
-    private static Logger logger = LoggerFactory.getLogger(JGoogleAnalyticsTracker.class);
+    private static Logger log = Logger.getLogger(JGoogleAnalyticsTracker.class);
     private static final ThreadGroup asyncThreadGroup = new ThreadGroup("Async Google Analytics Threads");
     private static long asyncThreadsRunning = 0;
     private static Proxy proxy = Proxy.NO_PROXY;
@@ -409,7 +404,7 @@ public class JGoogleAnalyticsTracker {
      */
     public synchronized void makeCustomRequest(AnalyticsRequestData argData) {
         if (!enabled) {
-            logger.debug("Ignoring tracking request, enabled is false");
+            log.debug("Ignoring tracking request, enabled is false");
             return;
         }
         if (argData == null) {
@@ -448,7 +443,7 @@ public class JGoogleAnalyticsTracker {
                     fifo.notify();
                 }
         		if(!backgroundThreadMayRun){
-        			logger.error("A tracker request has been added to the queue but the background thread isn't running.", url);
+        			log.error("A tracker request has been added to the queue but the background thread isn't running: " + url);
         		}
         		break;
         }
@@ -463,15 +458,16 @@ public class JGoogleAnalyticsTracker {
             connection.connect();
             int responseCode = connection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
-                logger.error("JGoogleAnalyticsTracker: Error requesting url '{}', received response code {}", argURL, responseCode);
+                log.error(String.format(
+                        "JGoogleAnalyticsTracker: Error requesting url '%s', received response code %s", argURL, responseCode));
             } else {
-                logger.debug("JGoogleAnalyticsTracker: Tracking success for url '{}'", new Object[]{argURL});
+                log.debug("JGoogleAnalyticsTracker: Tracking success for url: " + argURL);
             }
         } catch (Exception e) {
-            logger.error("Error making tracking request", e);
+            log.error("Error making tracking request", e);
         }
     }
-    
+
     private void createBuilder() {
         switch (gaVersion) {
             case V_4_7_2:
@@ -491,7 +487,7 @@ public class JGoogleAnalyticsTracker {
             backgroundThreadMayRun = true;
             backgroundThread = new Thread(asyncThreadGroup, "AnalyticsBackgroundThread") {
                 public void run() {
-                    logger.debug("AnalyticsBackgroundThread started");
+                    log.debug("AnalyticsBackgroundThread started");
                     while (backgroundThreadMayRun) {
                         try {
                             String url = null;
@@ -518,7 +514,7 @@ public class JGoogleAnalyticsTracker {
                                 }
                             }
                         } catch (Exception e) {
-                        	logger.error("Got exception from dispatch thread",e);
+                        	log.error("Got exception from dispatch thread", e);
                         }
                     }
                 }
